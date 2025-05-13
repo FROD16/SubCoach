@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Youth Soccer Coach</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      background: #f9fafb;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .player-card {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .lineup, .bench {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .section {
+      margin-top: 2rem;
+    }
+    .btn {
+      padding: 0.5rem 1rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <h1>Youth Soccer Coach</h1>
+  <div class="section">
+    <h2>1. Player Attendance</h2>
+    <div id="playerList"></div>
+    <button class="btn" onclick="submitAttendance()">Submit Attendance</button>
+  </div>
+
+  <div class="section">
+    <h2>2. Suggested Lineup (9v9)</h2>
+    <div id="lineup" class="lineup"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. Bench</h2>
+    <div id="bench" class="bench"></div>
+  </div>
+
+  <script>
+    const players = [
+      { name: "Aiden", position: ["RB", "LB"], present: true },
+      { name: "Bella", position: ["CM", "LM"], present: true },
+      { name: "Carlos", position: ["GK"], present: true },
+      { name: "Diana", position: ["ST", "RW"], present: true },
+      { name: "Ethan", position: ["CB"], present: true },
+      { name: "Faith", position: ["LB", "RB"], present: true },
+      { name: "Gabe", position: ["RM", "CM"], present: true },
+      { name: "Holly", position: ["ST"], present: true },
+      { name: "Ivan", position: ["CB", "RB"], present: true },
+      { name: "Jade", position: ["LM", "CM"], present: true }
+    ];
+
+    const positions = ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "RM", "ST"];
+
+    function loadPlayers() {
+      const container = document.getElementById("playerList");
+      players.forEach((player, index) => {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `
+          <label>
+            <input type="checkbox" id="check_${index}" ${player.present ? "checked" : ""}> ${player.name} (${player.position.join(", ")})
+          </label>`;
+        container.appendChild(card);
+      });
+    }
+
+    function submitAttendance() {
+      const presentPlayers = [];
+      players.forEach((p, i) => {
+        const checked = document.getElementById(`check_${i}`).checked;
+        p.present = checked;
+        if (checked) presentPlayers.push(p);
+      });
+
+      const lineup = presentPlayers.slice(0, 9);
+      const bench = presentPlayers.slice(9);
+
+      const lineupDiv = document.getElementById("lineup");
+      const benchDiv = document.getElementById("bench");
+      lineupDiv.innerHTML = "";
+      benchDiv.innerHTML = "";
+
+      lineup.forEach((player, idx) => {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerText = `${positions[idx]}: ${player.name}`;
+        lineupDiv.appendChild(card);
+      });
+
+      bench.forEach(player => {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerText = player.name;
+        benchDiv.appendChild(card);
+      });
+    }
+
+    window.onload = loadPlayers;
+  </script>
+</body>
+</html>
