@@ -1,7 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8" /><!DOCTYPE html>
+<html lang="en">
+<head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Youth Soccer Coach</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      background: #f9fafb;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .player-card {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .lineup, .bench {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .section {
+      margin-top: 2rem;
+    }
+    .btn {
+      padding: 0.5rem 1rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #2563eb;
+    }
+    .input-group {
+      margin-bottom: 0.5rem;
+    }
+    input[type="text"] {
+      padding: 0.4rem;
+      width: 100%;
+      margin-top: 0.2rem;
+    }
+    #gameTimer {
+      font-size: 1.25rem;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Youth Soccer Coach</h1>
+  <div class="section">
+    <h2>1. Add Players</h2>
+    <div class="input-group">
+      <label>Player Name:</label>
+      <input type="text" id="playerName" placeholder="e.g., Aiden" />
+    </div>
+    <div class="input-group">
+      <label>Preferred Positions (comma-separated):</label>
+      <input type="text" id="playerPositions" placeholder="e.g., RB,LB" />
+    </div>
+    <button class="btn" onclick="addPlayer()">Add Player</button>
+    <div id="playerList"></div>
+    <button class="btn" onclick="submitAttendance()">Submit Attendance</button>
+  </div>
+
+  <div class="section">
+    <h2>2. Game Timer</h2>
+    <button class="btn" onclick="startGame()">Start Game</button>
+    <div id="gameTimer">00:00</div>
+  </div>
+
+  <div class="section">
+    <h2>3. Suggested Lineup (9v9)</h2>
+    <div id="lineup" class="lineup"></div>
+  </div>
+
+  <div class="section">
+    <h2>4. Bench with Suggestions</h2>
+    <div id="bench" class="bench"></div>
+  </div>
+
+  <script>
+    let players = [];
+    const positions = ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "RM", "ST"];
+    let gameStartTime = null;
+    let timerInterval = null;
+
+    function addPlayer() {
+      const name = document.getElementById("playerName").value.trim();
+      const posInput = document.getElementById("playerPositions").value.trim();
+      const pos = posInput ? posInput.split(",").map(p => p.trim().toUpperCase()) : [];
+      if (!name) return;
+      players.push({ name, position: pos, present: true, timePlayed: 0, onField: false, enterTime: null });
+      document.getElementById("playerName").value = "";
+      document.getElementById("playerPositions").value = "";
+      renderPlayers();
+    }
+
+    function renderPlayers() {
+      const container = document.getElementById("playerList");
+      container.innerHTML = "";
+      players.forEach((player, index) => {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `
+          <label>
+            <input type="checkbox" id="check_${index}" ${player.present ? "checked" : ""}> ${player.name} (${player.position.join(", ")})
+          </label>`;
+        container.appendChild(card);
+      });
+    }
+
+    function startGame() {
+      gameStartTime = Date.now();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(updateGameClock, 1000);
+    }
+
+    function updateGameClock() {
+      const now = Date.now();
+      const elapsed = Math.floor((now - gameStartTime) / 1000);
+      const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const seconds = String(elapsed % 60).padStart(2, '0');
+      document.getElementById("gameTimer").innerText = `${minutes}:${seconds}`;
+
+      players.forEach(p => {
+        if (p.onField && p.enterTime != null) {
+          p.timePlayed = Math.floor((now - p.enterTime) / 1000);
+        }
+      });
+    }
+
+    function submitAttendance() {
+      const presentPlayers = [];
+      players.forEach((p, i) => {
+        const checked = document.getElementById(`check_${i}`).checked;
+        p.present = checked;
+        p.onField = false;
+        p.enterTime = null;
+        if (checked) presentPlayers.push(p);
+      });
+
+      const selectedLineup = [];
+      const usedIndexes = new Set();
+
+      // Assign players only to preferred positions
+      positions.forEach(pos => {
+        const matchIdx = presentPlayers.findIndex((p, idx) => !usedIndexes.has(idx) && p.position.includes(pos));
+        if (matchIdx !== -1) {
+          selectedLineup.push({ pos, player: presentPlayers[matchIdx] });
+          usedIndexes.add(matchIdx);
+        }
+      });
+
+      const bench = presentPlayers.filter((_, idx) => !usedIndexes.has(idx));
+
+      const lineupDiv = document.getElementById("lineup");
+      const benchDiv = document.getElementById("bench");
+      lineupDiv.innerHTML = "";
+      benchDiv.innerHTML = "";
+
+      selectedLineup.forEach(item => {
+        item.player.onField = true;
+        item.player.enterTime = Date.now();
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerText = `${item.pos}: ${item.player.name} (Pref: ${item.player.position.join(", ")})`;
+        lineupDiv.appendChild(card);
+      });
+
+      bench.forEach(player => {
+        player.onField = false;
+        player.enterTime = null;
+        const suggestion = positions.find(pos => player.position.includes(pos)) || "None";
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerText = `${player.name} (Time: ${Math.floor(player.timePlayed / 60)} min)
+Suggested: ${suggestion}`;
+        benchDiv.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Youth Soccer Coach</title>
   <style>
