@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><!DOCTYPE html>
-<html lang="en">
-<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Youth Soccer Coach</title>
@@ -21,12 +18,16 @@
       border: 1px solid #ccc;
       padding: 1rem;
       margin-bottom: 0.5rem;
+      cursor: grab;
     }
     .lineup, .bench {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
       margin-top: 1rem;
+      min-height: 100px;
+      border: 2px dashed #ccc;
+      padding: 1rem;
     }
     .section {
       margin-top: 2rem;
@@ -81,12 +82,12 @@
 
   <div class="section">
     <h2>3. Suggested Lineup (9v9)</h2>
-    <div id="lineup" class="lineup"></div>
+    <div id="lineup" class="lineup" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
   </div>
 
   <div class="section">
     <h2>4. Bench with Suggestions</h2>
-    <div id="bench" class="bench"></div>
+    <div id="bench" class="bench" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
   </div>
 
   <script>
@@ -135,181 +136,66 @@
 
       players.forEach(p => {
         if (p.onField && p.enterTime != null) {
-          p.timePlayed = Math.floor((now - p.enterTime) / 1000);
+          p.timePlayed += 1;
         }
       });
+      renderLineupBench();
     }
 
     function submitAttendance() {
-      const presentPlayers = [];
       players.forEach((p, i) => {
         const checked = document.getElementById(`check_${i}`).checked;
         p.present = checked;
         p.onField = false;
         p.enterTime = null;
-        if (checked) presentPlayers.push(p);
       });
+      renderLineupBench();
+    }
 
-      const selectedLineup = [];
-      const usedIndexes = new Set();
+    function renderLineupBench() {
+      const lineupDiv = document.getElementById("lineup");
+      const benchDiv = document.getElementById("bench");
+      lineupDiv.innerHTML = "";
+      benchDiv.innerHTML = "";
 
-      // Assign players only to preferred positions
-      positions.forEach(pos => {
-        const matchIdx = presentPlayers.findIndex((p, idx) => !usedIndexes.has(idx) && p.position.includes(pos));
-        if (matchIdx !== -1) {
-          selectedLineup.push({ pos, player: presentPlayers[matchIdx] });
-          usedIndexes.add(matchIdx);
+      players.forEach((player, index) => {
+        if (!player.present) return;
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.draggable = true;
+        card.ondragstart = (e) => e.dataTransfer.setData("text", index);
+        card.innerText = `${player.name} (${Math.floor(player.timePlayed / 60)} min)`;
+        if (player.onField) {
+          lineupDiv.appendChild(card);
+        } else {
+          const suggestion = positions.find(pos => player.position.includes(pos)) || "None";
+          card.innerText += `\nSuggested: ${suggestion}`;
+          benchDiv.appendChild(card);
         }
       });
-
-      const bench = presentPlayers.filter((_, idx) => !usedIndexes.has(idx));
-
-      const lineupDiv = document.getElementById("lineup");
-      const benchDiv = document.getElementById("bench");
-      lineupDiv.innerHTML = "";
-      benchDiv.innerHTML = "";
-
-      selectedLineup.forEach(item => {
-        item.player.onField = true;
-        item.player.enterTime = Date.now();
-        const card = document.createElement("div");
-        card.className = "player-card";
-        card.innerText = `${item.pos}: ${item.player.name} (Pref: ${item.player.position.join(", ")})`;
-        lineupDiv.appendChild(card);
-      });
-
-      bench.forEach(player => {
-        player.onField = false;
-        player.enterTime = null;
-        const suggestion = positions.find(pos => player.position.includes(pos)) || "None";
-        const card = document.createElement("div");
-        card.className = "player-card";
-        card.innerText = `${player.name} (Time: ${Math.floor(player.timePlayed / 60)} min)
-Suggested: ${suggestion}`;
-        benchDiv.appendChild(card);
-      });
-    }
-  </script>
-</body>
-</html>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Youth Soccer Coach</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      background: #f9fafb;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    .player-card {
-      background: white;
-      border: 1px solid #ccc;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
-    }
-    .lineup, .bench {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .section {
-      margin-top: 2rem;
-    }
-    .btn {
-      padding: 0.5rem 1rem;
-      background-color: #3b82f6;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .btn:hover {
-      background-color: #2563eb;
-    }
-  </style>
-</head>
-<body>
-  <h1>Youth Soccer Coach</h1>
-  <div class="section">
-    <h2>1. Player Attendance</h2>
-    <div id="playerList"></div>
-    <button class="btn" onclick="submitAttendance()">Submit Attendance</button>
-  </div>
-
-  <div class="section">
-    <h2>2. Suggested Lineup (9v9)</h2>
-    <div id="lineup" class="lineup"></div>
-  </div>
-
-  <div class="section">
-    <h2>3. Bench</h2>
-    <div id="bench" class="bench"></div>
-  </div>
-
-  <script>
-    const players = [
-      { name: "Aiden", position: ["RB", "LB"], present: true },
-      { name: "Bella", position: ["CM", "LM"], present: true },
-      { name: "Carlos", position: ["GK"], present: true },
-      { name: "Diana", position: ["ST", "RW"], present: true },
-      { name: "Ethan", position: ["CB"], present: true },
-      { name: "Faith", position: ["LB", "RB"], present: true },
-      { name: "Gabe", position: ["RM", "CM"], present: true },
-      { name: "Holly", position: ["ST"], present: true },
-      { name: "Ivan", position: ["CB", "RB"], present: true },
-      { name: "Jade", position: ["LM", "CM"], present: true }
-    ];
-
-    const positions = ["GK", "LB", "CB", "CB", "RB", "LM", "CM", "RM", "ST"];
-
-    function loadPlayers() {
-      const container = document.getElementById("playerList");
-      players.forEach((player, index) => {
-        const card = document.createElement("div");
-        card.className = "player-card";
-        card.innerHTML = `
-          <label>
-            <input type="checkbox" id="check_${index}" ${player.present ? "checked" : ""}> ${player.name} (${player.position.join(", ")})
-          </label>`;
-        container.appendChild(card);
-      });
     }
 
-    function submitAttendance() {
-      const presentPlayers = [];
-      players.forEach((p, i) => {
-        const checked = document.getElementById(`check_${i}`).checked;
-        p.present = checked;
-        if (checked) presentPlayers.push(p);
-      });
-
-      const lineup = presentPlayers.slice(0, 9);
-      const bench = presentPlayers.slice(9);
-
-      const lineupDiv = document.getElementById("lineup");
-      const benchDiv = document.getElementById("bench");
-      lineupDiv.innerHTML = "";
-      benchDiv.innerHTML = "";
-
-      lineup.forEach((player, idx) => {
-        const card = document.createElement("div");
-        card.className = "player-card";
-        card.innerText = `${positions[idx]}: ${player.name}`;
-        lineupDiv.appendChild(card);
-      });
-
-      bench.forEach(player => {
-        const card = document.createElement("div");
-        card.className = "player-card";
-        card.innerText = player.name;
-        benchDiv.appendChild(card);
-      });
+    function allowDrop(ev) {
+      ev.preventDefault();
     }
 
-    window.onload = loadPlayers;
+    function drop(ev) {
+      ev.preventDefault();
+      const index = ev.dataTransfer.getData("text");
+      const isLineup = ev.target.id === "lineup";
+      const isBench = ev.target.id === "bench";
+      if (index != null && (isLineup || isBench)) {
+        const player = players[index];
+        if (isLineup) {
+          player.onField = true;
+          player.enterTime = Date.now();
+        } else {
+          player.onField = false;
+          player.enterTime = null;
+        }
+        renderLineupBench();
+      }
+    }
   </script>
 </body>
 </html>
